@@ -1,0 +1,22 @@
+{
+  "name": "@nyxelrelay/gateway",
+  "version": "0.5.29",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nyxelrelay/provider-schema": "0.5.29",
+    "fastify": "^5.5.0",
+    "playwright": "^1.55.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.3",
+    "vitest": "^3.2.4"
+  }
+}

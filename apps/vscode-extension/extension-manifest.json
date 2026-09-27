@@ -1,0 +1,11 @@
+{
+  "name": "nyxelrelay-vscode",
+  "displayName": "NyxelRelay",
+  "description": "Local-first AI routing gateway for VS Code",
+  "version": "0.5.29",
+  "publisher": "nyxelrelay",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./dist/extension.js"
+}

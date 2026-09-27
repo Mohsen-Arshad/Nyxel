@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "provider": {"id":"grok","name":"Grok","version":"1.0.0"},
+  "transport":"web",
+  "website":{"url":"https://grok.com"},
+  "input":{"locator":{"strategies":[{"type":"css","value":"textarea[placeholder*='message']","confidence":0.8},{"type":"css","value":"[contenteditable='true']","confidence":0.7}],"framePath":[],"shadowPath":[]}},
+  "send":{"mode":"keyboard","key":"Enter"},
+  "response":{"locator":{"strategies":[{"type":"css","value":"[data-testid*='assistant']","confidence":0.8},{"type":"css","value":".assistant-message","confidence":0.5}],"framePath":[],"shadowPath":[]},"selection":"last"},
+  "streaming":{"enabled":true,"completionSignals":["mutation-idle","response-stable"]},
+  "capabilities":{"streaming":true,"vision":false,"files":false,"tools":false,"maxContextTokens":32768},
+  "metadata":{"homepage":"https://grok.com","notes":"Example only. Verify selectors against the current provider UI before use."}
+}

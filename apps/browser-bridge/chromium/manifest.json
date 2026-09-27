@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "NyxelRelay Browser Bridge",
+  "version": "0.1.6",
+  "description": "Connects NyxelRelay to an existing Chrome or Edge tab without launching a separate browser.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1:4321/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "NyxelRelay Browser Bridge"
+  }
+}

@@ -1,0 +1,22 @@
+export type TransportType = 'api'|'web'|'local';
+export type TaskKind = 'chat'|'debug'|'refactor'|'architecture'|'generate'|'test'|'docs'|'explain'|'performance'|'security';
+export type ClassificationSource = 'prompt'|'context'|'hybrid';
+export type TaskScore = { task: TaskKind; score: number; evidence: string[] };
+export type TaskClassification = {
+  task: TaskKind;
+  complexity: number;
+  confidence: number;
+  language: string;
+  source: ClassificationSource;
+  evidence: string[];
+  scores: TaskScore[];
+};
+export type LayaSignal = TaskClassification;
+export type IntelligencePolicy = { useNcp:boolean; contextDepth:'none'|'selection'|'file'|'related'; memoryDepth:'none'|'recent'|'relevant'; useSemanticCompression:boolean; reasons:string[]; source:'laya'|'deterministic'; confidence:number };
+export type AIRequest = { id:string; prompt:string; context?:ContextItem[]; task?:TaskKind; modelOverride?:string; privacy:'standard'|'strict'; maxOutputTokens?:number; workspaceRoot?:string; projectMemory?:string; ncp?:string };
+export type ContextItem = { path:string; content:string; score:number; reason:string };
+export type ProviderHealth = { healthy:boolean; latencyMs:number; checkedAt:number; error?:string };
+export type ProviderCapabilities = {streaming:boolean;vision:boolean;files:boolean;tools:boolean;maxContextTokens:number};
+export type ProviderCandidate = { id:string; transport:TransportType; capabilities:ProviderCapabilities; health:ProviderHealth; taskStrengths?:Partial<Record<TaskKind,number>>; score:number; reasons:string[] };
+export type RoutingDecision = { providerId:string; reasons:string[]; candidates:ProviderCandidate[]; overridden:boolean };
+export type AIEvent = { type:'start'|'delta'|'complete'|'error'|'fallback'|'cancelled'; requestId:string; text?:string; error?:string; providerId?:string };

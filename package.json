@@ -1,0 +1,25 @@
+{
+  "name": "nyxelrelay",
+  "version": "0.5.29",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run clean && npm run build --workspace=@nyxelrelay/provider-schema && npm run build --workspace=@nyxelrelay/gateway && npm run build --workspace=nyxelrelay-vscode",
+    "test": "npm run test --workspace=@nyxelrelay/provider-schema && npm run test --workspace=@nyxelrelay/gateway",
+    "dev": "npm run dev --workspace=@nyxelrelay/gateway",
+    "build:extension": "npm run build --workspace=nyxelrelay-vscode",
+    "build:gateway": "npm run build --workspace=@nyxelrelay/gateway",
+    "test:gateway": "npm run test --workspace=@nyxelrelay/gateway",
+    "test:schema": "npm run test --workspace=@nyxelrelay/provider-schema",
+    "package:extension": "cd apps/vscode-extension && npx @vscode/vsce package --no-dependencies",
+    "clean": "node -e \"for (const p of ['packages/provider-schema/dist','apps/gateway/dist','apps/vscode-extension/dist']) { require('fs').rmSync(p,{recursive:true,force:true}); }\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "tsx": "^4.20.3"
+  }
+}

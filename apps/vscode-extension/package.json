@@ -1,0 +1,115 @@
+{
+  "name": "nyxelrelay-vscode",
+  "version": "0.5.29",
+  "private": true,
+  "type": "module",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "routing",
+    "chat",
+    "developer-tools"
+  ],
+  "devDependencies": {
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "@types/node": "^22.10.0"
+  },
+  "displayName": "NyxelRelay",
+  "description": "Local-first AI routing gateway for VS Code",
+  "publisher": "nyxelrelay",
+  "activationEvents": [
+    "onView:nyxelrelay.chat",
+    "onCommand:nyxelrelay.ask",
+    "onCommand:nyxelrelay.providerImport",
+    "onCommand:nyxelrelay.providerExport",
+    "onCommand:nyxelrelay.openChat",
+    "onCommand:nyxelrelay.restartGateway",
+    "onCommand:nyxelrelay.providerStatus",
+    "onCommand:nyxelrelay.startWebProvider",
+    "onCommand:nyxelrelay.stopWebProvider"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "nyxelrelay.openChat",
+        "title": "NyxelRelay: Open Chat"
+      },
+      {
+        "command": "nyxelrelay.ask",
+        "title": "NyxelRelay: Ask"
+      },
+      {
+        "command": "nyxelrelay.providerImport",
+        "title": "NyxelRelay: Import Provider Definition"
+      },
+      {
+        "command": "nyxelrelay.providerExport",
+        "title": "NyxelRelay: Export Provider Definition"
+      },
+      {
+        "command": "nyxelrelay.restartGateway",
+        "title": "NyxelRelay: Restart Gateway"
+      },
+      {
+        "command": "nyxelrelay.providerStatus",
+        "title": "NyxelRelay: Provider Status"
+      },
+      {
+        "command": "nyxelrelay.startWebProvider",
+        "title": "NyxelRelay: Start Web Provider"
+      },
+      {
+        "command": "nyxelrelay.stopWebProvider",
+        "title": "NyxelRelay: Stop Web Provider"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nyxelrelay",
+          "title": "NyxelRelay",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "nyxelrelay": [
+        {
+          "id": "nyxelrelay.chat",
+          "name": "Chat",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "NyxelRelay",
+      "properties": {
+        "nyxelrelay.gateway.port": {
+          "type": "number",
+          "default": 4321,
+          "description": "Local NyxelRelay Gateway port."
+        },
+        "nyxelrelay.gateway.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the local Gateway automatically when the extension activates."
+        }
+      }
+    }
+  }
+}
