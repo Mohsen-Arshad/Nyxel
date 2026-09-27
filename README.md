@@ -1,94 +1,529 @@
-# NyxelRelay
+# Nyxel
 
-NyxelRelay is a local-first AI gateway for VS Code. It routes developer requests through a provider abstraction that can support API, web and local transports.
+Nyxel is a local-first AI gateway for developers who want to work
+with multiple AI providers from a single workflow.
 
-## Phase 3.1 Routing & Classification Hardening
+The project is built around a simple idea: the developer should not have
+to decide which model to use for every request or manually assemble the
+relevant project context. Nyxel prepares the request, evaluates
+available providers, selects a suitable provider, executes the request,
+and can fall back when necessary.
 
-The current MVP now combines prompt signals with editor context, exposes classification confidence/evidence, ranks providers using task fit/capabilities/reliability/privacy, and sanitizes context again at the Gateway boundary. See `docs/PHASE3-ROUTING.md`.
+The primary interface is a Visual Studio Code extension. The gateway,
+routing logic, context preparation, project memory, and provider
+management run locally.
 
-# Phase 4: real provider runtime
+## Features
 
-This phase adds a real VS Code development experience:
+- Multi-provider AI routing
+- Visual Studio Code integration
+- Local gateway
+- OpenAI-compatible, Anthropic, and Gemini provider adapters
+- Local model support through Ollama and OpenAI-compatible servers
+- Browser-based providers through a Browser Bridge
+- Provider fallback
+- Task classification and routing policies
+- Project-aware context collection
+- Local project memory
+- Optional local semantic context compression
+- Secret and credential filtering
+- Prompt-injection-aware context handling
+- Provider health and runtime status
+- Request cancellation
+- Structured diagnostics
+- Declarative provider definitions
+- Provider import/export
+- Browser locator scanning and selection
 
-- NyxelRelay Activity Bar with a real chat UI.
-- Gateway lifecycle manager with health checks, auto-start, and restart.
-- Authenticated local Gateway requests using a per-session token.
-- Streaming chat events rendered incrementally in the sidebar.
-- Bounded active-editor context with basic secret/path protection.
-- Routing metadata shown before the streamed answer.
-- Standard and strict privacy request modes.
-- Provider definition import/export commands.
-- Persistent declarative provider definitions under VS Code global storage.
-- `F5` launch configuration and build task.
-- Mock local/API providers so the complete flow can be tested without API keys.
+## Architecture
 
-## Run in VS Code
+``` text
+VS Code Extension
+       |
+       v
+ Local Gateway
+       |
+       +--------------------+
+       |                    |
+       v                    v
+ Intelligence          Routing Engine
+       |                    |
+       |                    v
+       |              Provider Selection
+       |                    |
+       +----------+---------+
+                  |
+          Provider Adapters
+          /       |        \
+         /        |         \
+       API      Local        Web
+       |         |            |
+    OpenAI    Ollama      Browser Bridge
+    Gemini    LM Studio        |
+    Anthropic                  v
+                           Chrome / Edge
+```
 
-1. Install Node.js 20+ and npm 10+.
-2. Run `npm install` at the repository root.
-3. Run `npm run build`.
-4. Open the repository in VS Code.
-5. Press `F5` and choose **Run NyxelRelay Extension** if prompted.
-6. A new Extension Development Host opens.
-7. Click the NyxelRelay icon in the Activity Bar.
-8. Enter a prompt and press **Send**.
+### VS Code Extension
 
-The extension starts the compiled local Gateway automatically. No API key is required for the demo providers.
+The extension provides the user interface and connects the editor to the
+local gateway.
 
-## Test commands
+It handles chat, provider management, browser provider configuration,
+provider status, request cancellation, and workspace context.
 
-```bash
+### Local Gateway
+
+The gateway is the runtime core of Nyxel.
+
+It is responsible for:
+
+- Request validation
+- Context preparation
+- Task classification
+- Routing
+- Provider lifecycle management
+- Provider execution
+- Fallback
+- Diagnostics
+- Project memory
+- Browser Bridge communication
+
+The gateway is implemented in TypeScript and uses Fastify for its local
+HTTP API.
+
+### Intelligence and Routing
+
+The request pipeline is:
+
+``` text
+Request
+  -> Task Classification
+  -> Context Analysis
+  -> Capability Requirements
+  -> Policy Filtering
+  -> Candidate Generation
+  -> Provider Scoring
+  -> Provider Selection
+  -> Execution
+  -> Fallback
+```
+
+Nyxel uses Laya as a lightweight classification and policy signal.
+It is not treated as the sole source of truth for provider execution.
+
+Hard constraints are evaluated before soft ranking. Examples include
+unavailable authentication, missing capabilities, context limits,
+privacy restrictions, and unavailable transports.
+
+Provider scoring can consider task fit, capability fit, context fit,
+reliability, latency, historical success, and user preference.
+
+## Context Engine
+
+Nyxel does not send an entire repository to an AI model by default.
+
+Context is selected according to relevance, including:
+
+- Current selection
+- Active file
+- Referenced code
+- Direct dependencies
+- Recent Git changes
+- Related tests
+- Configuration
+- Project memory
+
+Sensitive files and common credential locations are excluded before
+context is prepared.
+
+The resulting information is represented as a Nyxel Context Packet
+(NCP):
+
+``` text
+NYXEL CONTEXT PACKET / 1
+TASK:
+REQUEST:
+WORKSPACE:
+TARGET:
+LANGUAGE:
+PROJECT MEMORY:
+CONSTRAINTS:
+RELEVANT CONTEXT:
+INSTRUCTIONS:
+```
+
+An optional local semantic compressor can further reduce large context
+sets when a suitable local model is available. It is not a hard
+dependency.
+
+## Provider System
+
+Providers implement a common interface so the routing layer does not
+need to know how an individual service works.
+
+A provider can represent:
+
+- A hosted API
+- A local model
+- A browser-based AI service
+
+Provider capabilities can describe streaming, vision, files, tools, and
+context limits.
+
+This separation makes it possible to add providers without changing the
+routing engine.
+
+## Browser Providers
+
+Browser providers are an optional transport for AI services that expose
+a usable web interface.
+
+Nyxel supports:
+
+- Existing Browser
+- Managed Browser
+
+Existing Browser mode uses the Nyxel Browser Bridge to communicate
+with an already running Chromium browser session.
+
+``` text
+Nyxel Gateway
+        |
+        | Local Bridge Protocol
+        v
+Browser Bridge Extension
+        |
+        v
+Chrome / Edge
+        |
+        v
+AI Web Application
+```
+
+Browser automation is deliberately isolated from the core routing
+architecture. It is a transport option, not the foundation of the
+system.
+
+Web interfaces can change their DOM structure without notice. Browser
+providers therefore support locator scanning, picking, validation, and
+runtime health reporting.
+
+## Provider Fallback
+
+Provider failure does not necessarily terminate a request.
+
+When execution fails, the gateway can try another eligible candidate:
+
+``` text
+Request
+   |
+   v
+Provider A
+   |
+   +---- success ----> Response
+   |
+   +---- failure ----> Provider B
+                           |
+                           +---- success ----> Response
+                           |
+                           +---- failure ----> Error
+```
+
+Fallback remains subject to provider capabilities and routing policies.
+
+## Project Memory
+
+Nyxel keeps project memory locally for information that is useful
+across requests.
+
+It can contain:
+
+- Project summary
+- Architecture
+- Technologies
+- Conventions
+- Constraints
+- Important files
+- Project facts
+- Recent tasks
+
+Memory is local. Only context selected for a specific request is
+prepared for transmission to a provider.
+
+## Security
+
+Security is part of the request pipeline.
+
+Nyxel filters sensitive files and attempts to detect common
+credentials before project context is sent to a provider.
+
+Examples include:
+
+``` text
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+credentials.*
+secrets.*
+```
+
+Repository content is treated as untrusted input. System instructions,
+user instructions, repository content, model output, and tool output are
+kept conceptually separate so that project files cannot automatically
+become trusted instructions.
+
+Users should still review provider configuration and understand what
+information is being sent to each external service.
+
+## Diagnostics
+
+The gateway produces structured NDJSON diagnostics during runtime.
+
+Diagnostics can include:
+
+- Request IDs
+- Provider selection
+- Provider attempts
+- Routing information
+- Browser Bridge commands
+- Request stages
+- Timing
+- Errors and timeouts
+
+Request content and credentials are not intended to be written directly
+to the diagnostic log.
+
+Typical project data is stored under:
+
+``` text
+.Nyxel/
+├── logs/
+│   └── gateway.ndjson
+├── memory/
+└── providers/
+```
+
+## Getting Started
+
+### Requirements
+
+- Node.js
+- npm
+- Visual Studio Code
+- Chrome or Edge for browser providers
+- A configured AI provider or a local model such as Ollama
+
+### Installation
+
+``` bash
+git clone <repository-url>
+cd Nyxel
+npm install
+```
+
+Build all workspaces:
+
+``` bash
+npm run build
+```
+
+Run the test suite:
+
+``` bash
+npm test
+```
+
+The repository uses npm workspaces.
+
+### Development
+
+Start the local gateway:
+
+``` bash
+npm run dev
+```
+
+The VS Code extension can then be launched from the extension
+development environment.
+
+For browser providers, load the Chromium Browser Bridge from:
+
+``` text
+apps/browser-bridge/chromium
+```
+
+After changing the extension, reload it from the browser’s extension
+management page.
+
+## Configuring Providers
+
+Provider configuration is managed from the Providers section of the
+Nyxel VS Code extension.
+
+API credentials can be stored using VS Code SecretStorage rather than
+being placed directly in project files.
+
+Local providers can point to services such as:
+
+``` text
+Ollama
+LM Studio
+OpenAI-compatible local servers
+```
+
+A browser provider requires:
+
+1.  The target AI web application to be open in Chrome or Edge.
+2.  The Nyxel Browser Bridge to be installed and active.
+3.  A provider definition containing the target URL.
+4.  Valid input, send, and response locators when automatic detection is
+    not sufficient.
+
+The browser scanner can inspect the active page and suggest candidate
+locators.
+
+## Repository Structure
+
+``` text
+Nyxel/
+├── apps/
+│   ├── browser-bridge/
+│   │   └── chromium/
+│   ├── gateway/
+│   └── vscode-extension/
+├── packages/
+│   └── provider-schema/
+├── package.json
+└── README.md
+```
+
+### Gateway
+
+The gateway contains routing, provider execution, context intelligence,
+project memory, browser transport, diagnostics, and security-related
+logic.
+
+### Provider Schema
+
+`packages/provider-schema` contains shared declarative provider
+definitions and capability types.
+
+Keeping the schema separate prevents the VS Code extension and gateway
+from developing incompatible provider definitions.
+
+## Testing
+
+The project uses Vitest.
+
+The test suite covers areas including:
+
+- Provider schema validation
+- Routing
+- Golden routing cases
+- Provider candidate generation
+- Context intelligence
+- Project memory
+- Laya policies
+- Secret detection
+- Browser Bridge behavior
+- Web provider behavior
+- Streaming
+
+Run all tests with:
+
+``` bash
+npm test
+```
+
+## Current Status
+
+Nyxel is under active development.
+
+The core routing, provider abstraction, local gateway, context
+intelligence, project memory, and VS Code integration are functional
+parts of the architecture.
+
+Browser-based providers are more experimental because they depend on
+third-party web applications and their changing interfaces. A provider
+may require locator updates when the target website changes.
+
+The project should currently be considered a development-stage tool
+rather than a production-stable AI platform.
+
+## Design Principles
+
+### Local First
+
+The gateway, routing logic, project memory, and context preparation run
+locally.
+
+### Provider Agnostic
+
+The routing layer should not depend on one AI vendor.
+
+### Context Before Scale
+
+More context is not automatically better context. Nyxel attempts to
+send the smallest relevant context needed for a task.
+
+### Deterministic Where Possible
+
+Routing, filtering, security checks, and context selection should remain
+predictable wherever an LLM is not necessary.
+
+### AI as a Component
+
+A local or remote model can improve parts of the system, but the gateway
+should remain functional without making an LLM a hard dependency.
+
+### Browser Automation as a Transport
+
+Web automation is useful for services without an accessible API, but it
+remains isolated from the core architecture.
+
+## Roadmap
+
+- More provider adapters
+- More robust browser-provider adapters
+- Firefox support
+- Improved browser session management
+- Stronger browser transport authentication
+- Native local IPC
+- AST-based context extraction
+- Semantic repository retrieval
+- Improved context budgeting
+- More advanced routing history
+- Provider performance analytics
+- Improved cancellation and streaming across browser providers
+- Packaging and one-click installation
+
+## License
+
+This project is licensed under the Apache License 2.0.
+
+See `LICENSE` for the full license text.
+
+## Contributing
+
+Contributions are welcome.
+
+Before opening a pull request:
+
+1.  Keep provider-specific behavior isolated from the routing layer.
+2.  Add tests for new routing or provider behavior.
+3.  Avoid logging credentials or complete user prompts.
+4.  Keep browser-specific assumptions inside the browser transport.
+5.  Run:
+
+``` bash
 npm run build
 npm test
 ```
 
-## Provider import/export
-
-Use the Command Palette:
-
-- `NyxelRelay: Import Provider Definition`
-- `NyxelRelay: Export Provider Definition`
-
-Provider definitions are JSON data only. They must not contain credentials, cookies, session tokens or executable code.
-
-## Current boundary
-
-The current chat flow uses demo providers. Web automation remains a separate transport and is not silently treated as a universal provider API. The next implementation slice is the isolated Browser Worker + visual provider setup/repair flow.
-
-See [INSTALLATION.md](./INSTALLATION.md), [docs/PHASE3.md](./docs/PHASE3.md), and [docs/ROADMAP.md](./docs/ROADMAP.md).
-
-
-## Installation
-
-See [INSTALLATION.md](./INSTALLATION.md) for the complete npm-based setup and VS Code development workflow.
-
-
-## Phase 4 provider runtime
-
-NyxelRelay can now execute real providers while keeping credentials outside portable provider definitions. Configure providers through environment variables inherited by the VS Code process. See `docs/PHASE4.md` and `.env.example`.
-
-Supported runtime adapters include OpenAI-compatible endpoints, DeepSeek, Anthropic, Gemini, Ollama, LM Studio, and declarative web providers. The Gateway performs health-aware routing, request cancellation, and ranked fallback.
-
-
-## Phase 4.5
-Provider Control Center is available in the VS Code sidebar. See `docs/PHASE4.5.md` for the manual test plan.
-
-## Phase 5: Context Intelligence
-
-NyxelRelay now builds a local **NCP/1 (Nyxel Context Packet)** before provider execution. The packet combines the user's task, exact target code, relevant dependencies, project memory, constraints and recent work. Web providers, local models and API providers consume the same provider-agnostic context representation.
-
-Project memory is persisted locally under `.nyxelrelay/memory`. An optional local Ollama model can perform semantic compression of unusually large context, with deterministic context selection remaining the fallback. The goal is not to bypass provider limits, but to send the most useful project information with less noise.
-
-## Phase 5.1 - Adaptive local intelligence
-
-- Fast intelligence policy layer with optional local Laya integration.
-- NCP is skipped for simple requests that do not need project context.
-- Context and memory depth are selected per request.
-- Optional semantic compression is requested only when policy says it is useful.
-- Web Provider URL normalization, startup retries, readiness state, stronger response detection, and UI-prefix normalization.
-
-Laya is optional and local. Configure `NYXELRELAY_LAYA_URL` only if a local Laya server is running.
-
-## Phase 5.5: Browser Bridge
-
-Web Providers can use an existing Chrome/Edge session through the local Manifest V3 Browser Bridge under `apps/browser-bridge/chromium`. Managed Playwright remains available as a fallback. Firefox is intentionally isolated behind a future browser-specific adapter.
+Include a short explanation of the problem, the approach taken, and any
+provider-specific limitations in the pull request.
